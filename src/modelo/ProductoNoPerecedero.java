@@ -14,22 +14,26 @@ public class ProductoNoPerecedero extends Producto {
     }
 
     @Override
-    public String mostrarDetalle() {
-        return super.mostrarDetalle() + " | Ubicación: " + pasilloUbicacion +
-                " | Garantía: " + mesesGarantia + " meses";
+    public String verificarEstado() {
+        if (tieneStockBajo()) {
+            return "STOCK BAJO";
+        }
+        return "NORMAL";
     }
 
     public String getPasilloUbicacion() { return pasilloUbicacion; }
     public void setPasilloUbicacion(String pasilloUbicacion) {
-        if (pasilloUbicacion != null && !pasilloUbicacion.trim().isEmpty()) {
-            this.pasilloUbicacion = pasilloUbicacion.trim();
+        if (pasilloUbicacion == null || pasilloUbicacion.trim().isEmpty()) {
+            throw new IllegalArgumentException("La ubicación no puede estar vacía.");
         }
+        this.pasilloUbicacion = pasilloUbicacion.trim();
     }
 
     public int getMesesGarantia() { return mesesGarantia; }
     public void setMesesGarantia(int mesesGarantia) {
-        if (mesesGarantia >= 0) {
-            this.mesesGarantia = mesesGarantia;
+        if (mesesGarantia < 0) {
+            throw new IllegalArgumentException("Los meses de garantía no pueden ser negativos.");
         }
+        this.mesesGarantia = mesesGarantia;
     }
 }

@@ -4,6 +4,7 @@ import modelo.Producto;
 import modelo.ProductoPerecedero;
 
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,6 +16,14 @@ public class GestorInventario {
             return false;
         }
         return productos.add(p);
+    }
+
+    public boolean eliminarProducto(String codigo) {
+        Producto p = buscarPorCodigo(codigo);
+        if (p == null) {
+            return false;
+        }
+        return productos.remove(p);
     }
 
     public Producto buscarPorCodigo(String codigo) {
@@ -39,42 +48,44 @@ public class GestorInventario {
         return resultados;
     }
 
-    public boolean actualizarStock(String codigo, int cambio) {
+    public void actualizarStock(String codigo, int cambio) {
         Producto p = buscarPorCodigo(codigo);
-        if (p == null) return false;
+        if (p == null) {
+            throw new IllegalArgumentException("No existe un producto con el código: " + codigo);
+        }
         int nuevoStock = p.getCantidadStock() + cambio;
-        if (nuevoStock < 0) return false;
+        if (nuevoStock < 0) {
+            throw new IllegalArgumentException(
+                    "Stock insuficiente. Disponible: " + p.getCantidadStock() + ", salida solicitada: " + Math.abs(cambio)
+            );
+        }
         p.setCantidadStock(nuevoStock);
-        return true;
     }
 
-    public List<String> generarAlertas(LocalDate fechaActual) {
+    public List<String> generarAlertas() {
         List<String> alertas = new ArrayList<>();
-        LocalDate fechaLimite = fechaActual.plusDays(3);
+        LocalDate hoy = LocalDate.now();
 
         for (Producto p : productos) {
-            if (p.stockBajo()) {
-                alertas.add("STOCK BAJO: " + p.getNombre() + " [" + p.getCodigo() + "] -> "
-                        + p.getCantidadStock() + " / mín " + p.getStockMinimo());
+            if (p.tieneStockBajo()) {
+                alertas.add("STOCK BAJO: " + p.getNombre() + " (" + p.getCantidadStock() + "/" + p.getStockMinimo() + ")");
             }
             if (p instanceof ProductoPerecedero perecedero) {
-                LocalDate caduca = perecedero.getFechaCaducidad();
-                if (caduca != null) {
-                    if (caduca.isBefore(fechaActual)) {
-                        alertas.add("VENCIDO: " + p.getNombre() + " [" + p.getCodigo() + "] -> " + caduca);
-                    } else if (!caduca.isAfter(fechaLimite)) {
-                        alertas.add("POR VENCER: " + p.getNombre() + " [" + p.getCodigo() + "] -> " + caduca);
-                    }
+                long dias = ChronoUnit.DAYS.between(hoy, perecedero.getFechaCaducidad());
+                if (dias < 0) {
+                    alertas.add("VENCIDO (" + Math.abs(dias) + " días): " + p.getNombre());
+                } else if (dias <= 7) {
+                    alertas.add("PRÓXIMO A VENCER (" + dias + " días): " + p.getNombre());
                 }
             }
         }
         return alertas;
     }
 
-    public double calcularCapitalTotal() {
+    public double calcularValorInventario() {
         double total = 0;
         for (Producto p : productos) {
-            total += p.calcularCapital();
+            total += p.calcularValorInventario();
         }
         return total;
     }
@@ -82,12 +93,12 @@ public class GestorInventario {
     public double calcularGananciaEstimada() {
         double ganancia = 0;
         for (Producto p : productos) {
-            ganancia += p.calcularMargen() * p.getCantidadStock();
+            ganancia += p.calcularMargenUnitario() * p.getCantidadStock();
         }
         return ganancia;
     }
 
-    public List<Producto> getProductos() {
+    public List<Producto> listarProductos() {
         return productos;
     }
 }

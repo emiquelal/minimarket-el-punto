@@ -1,6 +1,7 @@
 package modelo;
 
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 
 public class ProductoPerecedero extends Producto {
     private LocalDate fechaCaducidad;
@@ -11,18 +12,30 @@ public class ProductoPerecedero extends Producto {
                               int cantidadStock, int stockMinimo,
                               LocalDate fechaCaducidad, boolean requiereRefrigeracion) {
         super(codigo, nombre, categoria, precioCompra, precioVenta, cantidadStock, stockMinimo);
-        this.fechaCaducidad = fechaCaducidad;
+        setFechaCaducidad(fechaCaducidad);
         this.requiereRefrigeracion = requiereRefrigeracion;
     }
 
     @Override
-    public String mostrarDetalle() {
-        String frio = requiereRefrigeracion ? "Con refrigeración" : "Sin refrigeración";
-        return super.mostrarDetalle() + " | Caduca: " + fechaCaducidad + " | " + frio;
+    public String verificarEstado() {
+        long dias = ChronoUnit.DAYS.between(LocalDate.now(), fechaCaducidad);
+        if (dias < 0) {
+            return "VENCIDO (" + Math.abs(dias) + " días)";
+        }
+        if (dias <= 7) {
+            return "PRÓXIMO A VENCER (" + dias + " días)";
+        }
+        if (tieneStockBajo()) {
+            return "STOCK BAJO";
+        }
+        return "NORMAL";
     }
 
     public LocalDate getFechaCaducidad() { return fechaCaducidad; }
     public void setFechaCaducidad(LocalDate fechaCaducidad) {
+        if (fechaCaducidad == null) {
+            throw new IllegalArgumentException("La fecha de caducidad es obligatoria.");
+        }
         this.fechaCaducidad = fechaCaducidad;
     }
 
